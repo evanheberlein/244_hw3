@@ -1,0 +1,66 @@
+---
+title: "Task 2 - Cetaceans Raster"
+author: "Evan T. Heberlein"
+date: "2/25/2021"
+output:   
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(raster)
+library(here)
+library(sf)
+library(rnaturalearth)
+```
+
+```{r}
+# Create list of all cetacean rasters
+cetacean_rasters <- list.files(
+  here("data/ca_cetaceans"),
+  full.names = TRUE
+)
+
+# Stack all rasters
+cetacean_stack <- stack(cetacean_rasters)
+
+# Filter for presence threshold of 0.6
+cetacean_filter <- function(x, thresh = .6){
+  y <- ifelse(x >= thresh, 1, NA)
+  return(y)
+}
+
+cetacean_filtered <- calc(cetacean_stack, fun = cetacean_filter)
+
+cetacean_sum <- calc(cetacean_filtered, fun = sum, na.rm = TRUE)
+```
+
+```{r}
+# Create final plot - read in coastal outline
+states110 <- ne_download(scale = 110, type = 'countries', category = 'cultural', returnclass = 'sf')
+
+ca_counties <- read_sf(here("data","ca_counties","CA_Counties_TIGER2016.shp"))
+
+# Convert raster to df
+cetacean_df <- raster::rasterToPoints(cetacean_sum) %>%
+  as.data.frame()
+
+# Create final figure
+cetacean_fig <- ggplot() +
+  geom_raster(data = cetacean_df, 
+                       aes(x = x, y = y, fill = layer)) +
+  geom_sf(data = ca_counties, fill = "black")+
+  geom_sf(data = states110, fill = "black") +
+  coord_sf(expand= 0, xlim = c(-125, -115), ylim = c(32, 38)) +
+  labs(x = "Longitude", y = "Latitude", fill = "Species richness (n)") +
+  theme(legend.position = "top") +
+  scale_fill_gradient(low = "red", high = "blue")
+
+cetacean_fig
+
+plot(ca_counties)
+```
+

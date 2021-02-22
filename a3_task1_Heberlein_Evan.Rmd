@@ -1,0 +1,55 @@
+---
+title: "Task 1 - Oil Spills"
+author: "Evan T. Heberlein"
+date: "2/25/2021"
+output:   
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(sf)
+library(tmap)
+library(here)
+library(janitor)
+```
+
+```{r}
+# Read in CA Counties outlines
+ca_counties <- read_sf(here("data","ca_counties","CA_Counties_TIGER2016.shp"))
+ca_oil_spills <- read_sf(here("data", "ca_oil_spills",
+                              "Oil_Spill_Incident_Tracking_%5Bds394%5D.shp")) %>% 
+  clean_names()
+```
+
+```{r}
+# Interactive tmap
+
+tmap_mode(mode = "view")
+
+tm_shape(ca_counties) +
+  tm_fill() +
+  tm_shape(ca_oil_spills) +
+  tm_dots()
+```
+```{r}
+# Final choropleth map
+
+# Combining spatial layers
+
+ca_combo <- ca_counties %>% 
+  st_join(ca_oil_spills)
+
+ca_spill_counts <- ca_combo %>% count(localecoun)
+  
+
+ggplot(data = ca_spill_counts) +
+  geom_sf(aes(fill = n), color = "gray", size = 0.1) +
+  scale_fill_gradientn(colors = c("white","orange","red","black")) +
+  theme_minimal()
+```
+
+
