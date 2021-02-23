@@ -1,7 +1,7 @@
 ---
-title: "Task 1 - Oil Spills"
+title: "HW 3 Task 1 - Oil Spills"
 author: "Evan T. Heberlein"
-date: "2/25/2021"
+date: "2/22/2021"
 output:   
   html_document:
     code_folding: hide
@@ -17,15 +17,15 @@ library(here)
 library(janitor)
 ```
 
-```{r}
-# Read in CA Counties outlines
+```{r import data, message=FALSE, warning=FALSE}
+# Read in CA Counties outlines & oil spills data
 ca_counties <- read_sf(here("data","ca_counties","CA_Counties_TIGER2016.shp"))
 ca_oil_spills <- read_sf(here("data", "ca_oil_spills",
                               "Oil_Spill_Incident_Tracking_%5Bds394%5D.shp")) %>% 
   clean_names()
 ```
 
-```{r}
+```{r tmap, message=FALSE, warning=FALSE}
 # Interactive tmap
 
 tmap_mode(mode = "view")
@@ -35,21 +35,31 @@ tm_shape(ca_counties) +
   tm_shape(ca_oil_spills) +
   tm_dots()
 ```
-```{r}
-# Final choropleth map
+***Figure 1** - interactive map of all reported oil spills in California during 2008*
+
+```{r chloropleth, message=FALSE, warning=FALSE}
+# Filter for inland oil spills only
+ca_oil_spills_inland <- ca_oil_spills %>% 
+  filter(inlandmari == "Inland")
 
 # Combining spatial layers
-
 ca_combo <- ca_counties %>% 
-  st_join(ca_oil_spills)
+  st_join(ca_oil_spills_inland)
 
+# Count spills by county
 ca_spill_counts <- ca_combo %>% count(localecoun)
   
-
+# Create final chloropleth
 ggplot(data = ca_spill_counts) +
-  geom_sf(aes(fill = n), color = "gray", size = 0.1) +
-  scale_fill_gradientn(colors = c("white","orange","red","black")) +
-  theme_minimal()
+  geom_sf(aes(fill = n), color = "black", size = 0.1) +
+  scale_fill_gradientn(colors = c("light green","orange","red","black")) +
+  labs(x = "Longitude", y = "Latitude", fill = "Oil spills (n)") +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_y_continuous(expand = c(0,0))
 ```
 
+***Figure 2** - Chloropleth map of total inland (non-marine) oil spills by county in California in 2008*
 
+*Data citation: Oil spill incident tracking [ds394] https://map.dfg.ca.gov/metadata/ds0394.html*

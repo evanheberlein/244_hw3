@@ -1,7 +1,7 @@
 ---
-title: "Task 2 - Cetaceans Raster"
+title: "HW 3 Task 2 - Cetaceans Raster"
 author: "Evan T. Heberlein"
-date: "2/25/2021"
+date: "2/22/2021"
 output:   
   html_document:
     code_folding: hide
@@ -17,7 +17,7 @@ library(sf)
 library(rnaturalearth)
 ```
 
-```{r}
+```{r stack rasters, message=FALSE, warning=FALSE}
 # Create list of all cetacean rasters
 cetacean_rasters <- list.files(
   here("data/ca_cetaceans"),
@@ -27,22 +27,25 @@ cetacean_rasters <- list.files(
 # Stack all rasters
 cetacean_stack <- stack(cetacean_rasters)
 
-# Filter for presence threshold of 0.6
+# Write function to filter for presence threshold of 0.6
 cetacean_filter <- function(x, thresh = .6){
   y <- ifelse(x >= thresh, 1, NA)
   return(y)
 }
 
+# Apply filter function to raster stack
 cetacean_filtered <- calc(cetacean_stack, fun = cetacean_filter)
 
+# Calculate total species numbers per raster cell
 cetacean_sum <- calc(cetacean_filtered, fun = sum, na.rm = TRUE)
 ```
 
-```{r}
-# Create final plot - read in coastal outline
-states110 <- ne_download(scale = 110, type = 'countries', category = 'cultural', returnclass = 'sf')
+```{r natural earth, message=FALSE, warning=FALSE, include=FALSE}
+# Read in coastal outline from natural earth
+pacific_coast <- ne_download(scale = 110, type = 'countries', category = 'cultural', returnclass = 'sf')
+```
 
-ca_counties <- read_sf(here("data","ca_counties","CA_Counties_TIGER2016.shp"))
+```{r figure, message=FALSE, warning=FALSE}
 
 # Convert raster to df
 cetacean_df <- raster::rasterToPoints(cetacean_sum) %>%
@@ -52,15 +55,15 @@ cetacean_df <- raster::rasterToPoints(cetacean_sum) %>%
 cetacean_fig <- ggplot() +
   geom_raster(data = cetacean_df, 
                        aes(x = x, y = y, fill = layer)) +
-  geom_sf(data = ca_counties, fill = "black")+
-  geom_sf(data = states110, fill = "black") +
+  geom_sf(data = pacific_coast, fill = "black", color = "gray") +
   coord_sf(expand= 0, xlim = c(-125, -115), ylim = c(32, 38)) +
   labs(x = "Longitude", y = "Latitude", fill = "Species richness (n)") +
-  theme(legend.position = "top") +
+  theme(legend.position = "bottom") +
   scale_fill_gradient(low = "red", high = "blue")
 
 cetacean_fig
-
-plot(ca_counties)
 ```
 
+***Figure 1** - Cetacean species richness for the Southern California Bight and surrounding areas of the Eastern Pacific Ocean. Species abundance was calculated based on a presence threshold probability of **0.6**, and rasters for all 35 species were aggregated after values over 0.6 were coerced to 1 (and values under 0.6 to 0). Highest species abundance value shown is 28 species (dark blue)*
+
+*Data citation: Kaschner, K., Rius-Barile, J., Kesner-Reyes, K., Garilao, C., Kullander, S., Rees, T., & Froese, R. (2016). AquaMaps: Predicted range maps for aquatic species. www.aquamaps.org*
